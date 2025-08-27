@@ -1,26 +1,27 @@
-# config.py
-# Thông tin cho API PRAW (thay bằng thực tế từ https://www.reddit.com/prefs/apps)
-REDDIT_CLIENT_ID = 'zOG_llD-bo0JAMCMISDbsA'
-REDDIT_CLIENT_SECRET = 'nFkY932BAwL1YMrPsZzliMjSPqreOw'
-REDDIT_USER_AGENT = 'MyRedditCrawler/1.0 by u/loc2002'
+import os
+from dotenv import load_dotenv
 
-# cần crawl nội dung private thì điền
-REDDIT_USERNAME = ''
-REDDIT_PASSWORD = ''
+load_dotenv("../.env")
 
-# Thông tin cho Playwright
-BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+class Config:
+    # Thông tin cho API PRAW
+    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID", "zOG_llD-bo0JAMCMISDbsA")
+    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET", "nFkY932BAwL1YMrPsZzliMjSPqreOw")
+    REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "MyRedditCrawler/1.0 by u/loc2002")
+    REDDIT_USERNAME = os.getenv("REDDIT_USERNAME", "")
+    REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD", "")
 
-# Cấu hình chung
-SUBREDDIT_NAME = 'python'  # Thay bằng subreddit bạn muốn (ví dụ: 'python')
-SUBREDDIT_URL = f'https://www.reddit.com/r/{SUBREDDIT_NAME}/'  # URL cho Playwright
-LIMIT = 10  # Số lượng post tối đa để crawl/test
+    # Thông tin cho Playwright
+    BROWSER_USER_AGENT = os.getenv("BROWSER_USER_AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
-# Thêm cho search
-DEFAULT_QUERY = None  # Từ khóa mặc định (None nếu không dùng)
-DEFAULT_USERNAME = None  # Tài khoản mặc định (None nếu không dùng)
+    # Cấu hình chung
+    SUBREDDIT_NAME = os.getenv("SUBREDDIT_NAME", "python")
+    SUBREDDIT_URL = f"https://www.reddit.com/r/{SUBREDDIT_NAME}/"
+    LIMIT = int(os.getenv("LIMIT", 10))
 
-# redirect uri: http://localhost:8080
+    # Thêm cho search
+    DEFAULT_QUERY = os.getenv("DEFAULT_QUERY", None)
+    DEFAULT_USERNAME = os.getenv("DEFAULT_USERNAME", None)
 
-# mongodb
-MONGO_DB_HOST = "mongodb://localhost:27017/"
+    # MongoDB
+    MONGO_DB_HOST = os.getenv("MONGO_DB_HOST", "mongodb://localhost:27017/")

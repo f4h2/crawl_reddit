@@ -1,18 +1,16 @@
 # api_crawler.py
 import praw
 import time
-from config import (REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET,
-                    REDDIT_USER_AGENT, REDDIT_USERNAME, REDDIT_PASSWORD,
-                    SUBREDDIT_NAME, LIMIT, DEFAULT_QUERY, DEFAULT_USERNAME)
+from config import Config
 from utils import handle_rate_limit
 
 
 def crawl_with_api(query=None, username=None):
     # Khởi tạo Reddit instance
     reddit = praw.Reddit(
-        client_id=REDDIT_CLIENT_ID,
-        client_secret=REDDIT_CLIENT_SECRET,
-        user_agent=REDDIT_USER_AGENT
+        client_id=Config.REDDIT_CLIENT_ID,
+        client_secret=Config.REDDIT_CLIENT_SECRET,
+        user_agent=Config.REDDIT_USER_AGENT
         # username=REDDIT_USERNAME,
         # password=REDDIT_PASSWORD
     )
@@ -21,13 +19,13 @@ def crawl_with_api(query=None, username=None):
 
     if username:  # Crawl theo tài khoản
         redditor = handle_rate_limit(reddit.redditor, username)
-        submissions = handle_rate_limit(redditor.submissions.new, limit=LIMIT)
+        submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
     elif query:  # Crawl theo từ khóa (toàn Reddit, sort by new)
         subreddit = reddit.subreddit("all")
-        submissions = handle_rate_limit(subreddit.search, query, sort='new', limit=LIMIT)        # Nếu muốn giới hạn trong subreddit: subreddit = reddit.subreddit(SUBREDDIT_NAME); submissions = subreddit.search(query, sort='new', limit=LIMIT)
+        submissions = handle_rate_limit(subreddit.search, query, sort='new', limit=Config.LIMIT)        # Nếu muốn giới hạn trong subreddit: subreddit = reddit.subreddit(SUBREDDIT_NAME); submissions = subreddit.search(query, sort='new', limit=LIMIT)
     else:  # Mặc định: subreddit new
-        subreddit = handle_rate_limit(reddit.subreddit, SUBREDDIT_NAME)
-        submissions = handle_rate_limit(subreddit.new, limit=LIMIT)
+        subreddit = handle_rate_limit(reddit.subreddit, Config.SUBREDDIT_NAME)
+        submissions = handle_rate_limit(subreddit.new, limit=Config.LIMIT)
 
     for submission in submissions:
         post_data = {
