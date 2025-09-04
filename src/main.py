@@ -1,4 +1,3 @@
-# main.py
 import argparse
 import asyncio
 from api_crawler import crawl_with_api
@@ -26,9 +25,9 @@ if __name__ == "__main__":
 
         query = args.query
         username = args.username
-        if query and username:
-            print("Lỗi: Chỉ chọn một trong --query hoặc --username.")
-            exit(1)
+        # if query and username:
+        #     print("Lỗi: Chỉ chọn một trong --query hoặc --username.")
+        #     exit(1)
 
         if args.method == 'api':
             data = crawl_with_api(query=query, username=username)
