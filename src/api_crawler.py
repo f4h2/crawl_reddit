@@ -1,174 +1,100 @@
-# api_crawler.py
 import praw
 import time
 from config import Config
 from utils import handle_rate_limit
 
 
-# def crawl_with_api(query=None, username=None):
-#     # Khởi tạo Reddit instance
-#     reddit = praw.Reddit(
-#         client_id=Config.REDDIT_CLIENT_ID,
-#         client_secret=Config.REDDIT_CLIENT_SECRET,
-#         user_agent=Config.REDDIT_USER_AGENT
-#         # username=REDDIT_USERNAME,
-#         # password=REDDIT_PASSWORD
-#     )
-#
-#     data = []
-#
-#     if username:  # Crawl theo tài khoản
-#         redditor = handle_rate_limit(reddit.redditor, username)
-#         submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
-#     elif query:  # Crawl theo từ khóa (toàn Reddit, sort by new)
-#         subreddit = reddit.subreddit("all")
-#         submissions = handle_rate_limit(subreddit.search, query, sort='new', limit=Config.LIMIT)        # Nếu muốn giới hạn trong subreddit: subreddit = reddit.subreddit(SUBREDDIT_NAME); submissions = subreddit.search(query, sort='new', limit=LIMIT)
-#     else:  # Mặc định: subreddit new
-#         subreddit = handle_rate_limit(reddit.subreddit, Config.SUBREDDIT_NAME)
-#         submissions = handle_rate_limit(subreddit.new, limit=Config.LIMIT)
-#
-#     for submission in submissions:
-#         post_data = {
-#             'title': submission.title,
-#             'content': submission.selftext,
-#             'author': str(submission.author),
-#             'score': submission.score,
-#             'url': submission.url,
-#             'created_utc': submission.created_utc,
-#             'comments': []
-#         }
-#
-#         # Crawl bình luận
-#         submission.comments.replace_more(limit=None)
-#         for comment in submission.comments.list():
-#             post_data['comments'].append({
-#                 'body': comment.body,
-#                 'author': str(comment.author),
-#                 'score': comment.score
-#             })
-#
-#         data.append(post_data)
-#         time.sleep(1)  # Độ trễ
-#
-#     return data
+def crawl_with_api(queries=None, username=None, mongo_conn=None,name_db=None):
+    # queries có thể là string hoặc list
+    if isinstance(queries, str):
+        queries = [queries]
 
-
-def crawl_with_api(query=None, username=None):
-    # Khởi tạo Reddit instance
     reddit = praw.Reddit(
         client_id=Config.REDDIT_CLIENT_ID,
         client_secret=Config.REDDIT_CLIENT_SECRET,
         user_agent=Config.REDDIT_USER_AGENT
-        # username=REDDIT_USERNAME,
-        # password=REDDIT_PASSWORD
     )
 
+    name_db = f"crawled_posts_{name_db}"
     data = []
+    # Kết nối tới collection lưu trữ ID bài đăng đã crawl
+    crawled_collection = mongo_conn.get_client()["reddit_db"][name_db]
 
-    if username and query:  # Crawl theo tài khoản và từ khóa
+    def match_keywords(text):
+        """Kiểm tra text có chứa ít nhất 1 keyword"""
+        if not queries:
+            return True
+        text_lower = text.lower()
+        return any(q.lower() in text_lower for q in queries)
+
+    def is_post_crawled(submission_id):
+        """Kiểm tra xem bài đăng đã được crawl chưa"""
+        return crawled_collection.find_one({"submission_id": submission_id}) is not None
+
+    def mark_post_as_crawled(submission_id):
+        """Đánh dấu bài đăng là đã crawl"""
+        crawled_collection.insert_one({"submission_id": submission_id, "crawled_at": time.time()})
+
+    if username and queries:  # Crawl theo tài khoản và từ khóa
         redditor = handle_rate_limit(reddit.redditor, username)
         submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
-        # Lọc bài đăng theo từ khóa
         for submission in submissions:
-            if query.lower() in submission.title.lower() or query.lower() in submission.selftext.lower():
-                post_data = {
-                    'title': submission.title,
-                    'content': submission.selftext,
-                    'author': str(submission.author),
-                    'score': submission.score,
-                    'url': submission.url,
-                    'created_utc': submission.created_utc,
-                    'comments': []
-                }
-
-                # Crawl bình luận
-                submission.comments.replace_more(limit=None)
-                for comment in submission.comments.list():
-                    post_data['comments'].append({
-                        'body': comment.body,
-                        'author': str(comment.author),
-                        'score': comment.score
-                    })
-
-                data.append(post_data)
-                time.sleep(1)  # Độ trễ
+            if not is_post_crawled(submission.id):
+                if match_keywords(submission.title) or match_keywords(submission.selftext):
+                    data.append(parse_submission(submission))
+                    mark_post_as_crawled(submission.id)
+                    time.sleep(1)
 
     elif username:  # Crawl theo tài khoản
         redditor = handle_rate_limit(reddit.redditor, username)
         submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
         for submission in submissions:
-            post_data = {
-                'title': submission.title,
-                'content': submission.selftext,
-                'author': str(submission.author),
-                'score': submission.score,
-                'url': submission.url,
-                'created_utc': submission.created_utc,
-                'comments': []
-            }
+            if not is_post_crawled(submission.id):
+                data.append(parse_submission(submission))
+                mark_post_as_crawled(submission.id)
+                time.sleep(1)
 
-            # Crawl bình luận
-            submission.comments.replace_more(limit=None)
-            for comment in submission.comments.list():
-                post_data['comments'].append({
-                    'body': comment.body,
-                    'author': str(comment.author),
-                    'score': comment.score
-                })
-
-            data.append(post_data)
-            time.sleep(1)  # Độ trễ
-
-    elif query:  # Crawl theo từ khóa (toàn Reddit, sort by new)
+    elif queries:  # Crawl theo nhiều từ khóa (search all Reddit)
         subreddit = reddit.subreddit("all")
-        submissions = handle_rate_limit(subreddit.search, query, sort='new', limit=Config.LIMIT)
-        for submission in submissions:
-            post_data = {
-                'title': submission.title,
-                'content': submission.selftext,
-                'author': str(submission.author),
-                'score': submission.score,
-                'url': submission.url,
-                'created_utc': submission.created_utc,
-                'comments': []
-            }
+        for q in queries:
+            submissions = handle_rate_limit(subreddit.search, q, sort='new', limit=Config.LIMIT)
+            for submission in submissions:
+                if not is_post_crawled(submission.id):
+                    data.append(parse_submission(submission))
+                    mark_post_as_crawled(submission.id)
+                    time.sleep(1)
 
-            # Crawl bình luận
-            submission.comments.replace_more(limit=None)
-            for comment in submission.comments.list():
-                post_data['comments'].append({
-                    'body': comment.body,
-                    'author': str(comment.author),
-                    'score': comment.score
-                })
-
-            data.append(post_data)
-            time.sleep(1)  # Độ trễ
-
-    else:  # Mặc định: subreddit new
+    else:  # Mặc định: crawl subreddit new
         subreddit = handle_rate_limit(reddit.subreddit, Config.SUBREDDIT_NAME)
         submissions = handle_rate_limit(subreddit.new, limit=Config.LIMIT)
         for submission in submissions:
-            post_data = {
-                'title': submission.title,
-                'content': submission.selftext,
-                'author': str(submission.author),
-                'score': submission.score,
-                'url': submission.url,
-                'created_utc': submission.created_utc,
-                'comments': []
-            }
-
-            # Crawl bình luận
-            submission.comments.replace_more(limit=None)
-            for comment in submission.comments.list():
-                post_data['comments'].append({
-                    'body': comment.body,
-                    'author': str(comment.author),
-                    'score': comment.score
-                })
-
-            data.append(post_data)
-            time.sleep(1)  # Độ trễ
+            if not is_post_crawled(submission.id):
+                data.append(parse_submission(submission))
+                mark_post_as_crawled(submission.id)
+                time.sleep(1)
 
     return data
+
+
+def parse_submission(submission):
+    """Parse bài viết + comment"""
+    post_data = {
+        'submission_id': submission.id,  # Thêm submission_id vào dữ liệu
+        'title': submission.title,
+        'content': submission.selftext,
+        'author': str(submission.author),
+        'score': submission.score,
+        'url': submission.url,
+        'created_utc': submission.created_utc,
+        'comments': []
+    }
+
+    submission.comments.replace_more(limit=None)
+    for comment in submission.comments.list():
+        post_data['comments'].append({
+            'body': comment.body,
+            'author': str(comment.author),
+            'score': comment.score
+        })
+
+    return post_data

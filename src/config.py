@@ -24,4 +24,18 @@ class Config:
     DEFAULT_USERNAME = os.getenv("DEFAULT_USERNAME", None)
 
     # MongoDB
-    MONGO_DB_HOST = os.getenv("MONGO_DB_HOST", "mongodb://localhost:27017/")
+    MONGO_DB_HOST = os.getenv("MONGO_DB_HOST", "")
+
+    TYPE_CRAWL = int(os.getenv("TYPE_CRAWL",1))                 # 1: api; 2: browser; 3: both
+
+    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
+    KAFKA_SASL_MECHANISM = os.getenv("KAFKA_SASL_MECHANISM", "")
+    KAFKA_SASL_USERNAME = os.getenv("KAFKA_SASL_USERNAME", "")
+    KAFKA_SASL_PASSWORD = os.getenv("KAFKA_SASL_PASSWORD", "")
+
+    TOPIC = os.getenv("TOPIC", "")
+
+
+
+
