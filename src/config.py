@@ -28,8 +28,8 @@ class Config:
 
     TYPE_CRAWL = int(os.getenv("TYPE_CRAWL",1))                 # 1: api; 2: browser; 3: both
 
-    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
+    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
+    KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL", "")
     KAFKA_SASL_MECHANISM = os.getenv("KAFKA_SASL_MECHANISM", "")
     KAFKA_SASL_USERNAME = os.getenv("KAFKA_SASL_USERNAME", "")
     KAFKA_SASL_PASSWORD = os.getenv("KAFKA_SASL_PASSWORD", "")

@@ -3,10 +3,10 @@ import logging
 from kafka import KafkaProducer, KafkaConsumer
 from kafka.errors import KafkaError
 import json
-from src.config import Config
+from config import Config
 
 
-from src.logger_config import setup_logging
+from logger_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger("KafkaConnection")

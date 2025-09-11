@@ -6,7 +6,7 @@ import unicodedata
 from logger_config import setup_logging
 from text_unidecode import unidecode
 
-from src.connection.kafkaConnection import KafkaConnection
+from connection.kafkaConnection import KafkaConnection
 
 setup_logging()
 logger = logging.getLogger("utils")

@@ -35,17 +35,17 @@ def crawl_with_api(queries=None, username=None, mongo_conn=None,name_db=None):
         """Đánh dấu bài đăng là đã crawl"""
         crawled_collection.insert_one({"submission_id": submission_id, "crawled_at": time.time()})
 
-    if username and queries:  # Crawl theo tài khoản và từ khóa
-        redditor = handle_rate_limit(reddit.redditor, username)
-        submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
-        for submission in submissions:
-            if not is_post_crawled(submission.id):
-                if match_keywords(submission.title) or match_keywords(submission.selftext):
-                    data.append(parse_submission(submission))
-                    mark_post_as_crawled(submission.id)
-                    time.sleep(1)
+    # if username and queries:  # Crawl theo tài khoản và từ khóa
+    #     redditor = handle_rate_limit(reddit.redditor, username)
+    #     submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
+    #     for submission in submissions:
+    #         if not is_post_crawled(submission.id):
+    #             if match_keywords(submission.title) or match_keywords(submission.selftext):
+    #                 data.append(parse_submission(submission))
+    #                 mark_post_as_crawled(submission.id)
+    #                 time.sleep(1)
 
-    elif username:  # Crawl theo tài khoản
+    if username:  # Crawl theo tài khoản
         redditor = handle_rate_limit(reddit.redditor, username)
         submissions = handle_rate_limit(redditor.submissions.new, limit=Config.LIMIT)
         for submission in submissions:
@@ -79,7 +79,7 @@ def crawl_with_api(queries=None, username=None, mongo_conn=None,name_db=None):
 def parse_submission(submission):
     """Parse bài viết + comment"""
     post_data = {
-        'submission_id': submission.id,  # Thêm submission_id vào dữ liệu
+        'submission_id': submission.id,
         'title': submission.title,
         'content': submission.selftext,
         'author': str(submission.author),
