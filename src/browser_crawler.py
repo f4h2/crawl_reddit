@@ -1,4 +1,3 @@
-# browser_crawler.py
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 import asyncio
 import random

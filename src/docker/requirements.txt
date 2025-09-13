@@ -1,0 +1,7 @@
+kafka-python
+pymongo
+praw
+playwright
+python-json-logger
+text-unidecode
+dotenv

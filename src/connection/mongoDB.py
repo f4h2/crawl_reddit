@@ -1,8 +1,14 @@
+import logging
+
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from config import Config
 
 
+from logger_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger("mongoDB")
 class MongoDBConnection:
     _instance = None
 
@@ -17,9 +23,9 @@ class MongoDBConnection:
             try:
                 self._client = MongoClient(Config.MONGO_DB_HOST)
                 self._client.server_info()  # Kiểm tra kết nối
-                print("Kết nối MongoDB thành công")
+                logger.info("Kết nối MongoDB thành công")
             except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-                print(f"Lỗi khi kết nối MongoDB: {e}")
+                logger.error(f"Lỗi khi kết nối MongoDB: {e}")
                 raise
         return self._client
 
@@ -32,4 +38,4 @@ class MongoDBConnection:
         if self._client:
             self._client.close()
             self._client = None
-            print("Đã đóng kết nối MongoDB")
+            logger.info("Đã đóng kết nối MongoDB")

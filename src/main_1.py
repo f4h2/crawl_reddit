@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 import datetime
 import logging
@@ -8,6 +7,7 @@ from queue import Queue
 from api_crawler import crawl_with_api
 from browser_crawler import crawl_with_browser
 from logger_config import setup_logging
+from add_data import add_accounts_from_file, add_keywords_from_file
 from utils import save_data, merge_data, get_accounts_and_keywords, push_to_kafka
 from connection.mongoDB import MongoDBConnection
 from config import Config
@@ -106,6 +106,8 @@ def job_accounts():
     mongo_conn = MongoDBConnection()
     try:
         mongo_conn.connect()
+        # Thêm accounts từ file trước khi crawl, chỉ thêm những account chưa có
+        add_accounts_from_file(mongo_conn, "data_accounts_and_keywords/accounts.txt")
         type_crawl = Config.TYPE_CRAWL
         logger.info("Bắt đầu job crawl theo accounts")
         fetch_by_accounts(mongo_conn, type_crawl)
@@ -119,6 +121,7 @@ def job_keywords():
     mongo_conn = MongoDBConnection()
     try:
         mongo_conn.connect()
+        add_keywords_from_file(mongo_conn, "data_accounts_and_keywords/keywords.txt")
         type_crawl = Config.TYPE_CRAWL
         logger.info("Bắt đầu job crawl theo keywords")
         fetch_by_keywords(mongo_conn, type_crawl)
@@ -127,7 +130,7 @@ def job_keywords():
     finally:
         mongo_conn.close()
 
-
+#
 # if __name__ == "__main__":
 #     while True:
 #         now = datetime.datetime.now()
@@ -142,14 +145,6 @@ def job_keywords():
 #             time.sleep(30)
 
 if __name__ == "__main__":
-    while True:
-        now = datetime.datetime.now()
-        if True:
-            logger.info("Bắt đầu các job lúc 7h sáng...")
-            job_accounts()
-            job_keywords()
-            # Ngủ 61 giây để tránh chạy nhiều lần trong cùng phút
-            time.sleep(61)
-        else:
-            # Ngủ 30 giây để giảm tải CPU
-            time.sleep(30)
+    logger.info("Bắt đầu các job...")
+    job_accounts()
+    job_keywords()

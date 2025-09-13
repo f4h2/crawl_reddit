@@ -4,7 +4,6 @@ import re
 import time
 import unicodedata
 from logger_config import setup_logging
-from text_unidecode import unidecode
 
 from connection.kafkaConnection import KafkaConnection
 

@@ -4,3 +4,7 @@ mongodb
 kafka
 docker
 VIệt Tân
+Phản động
+cảnh sát
+cat
+súng gun
