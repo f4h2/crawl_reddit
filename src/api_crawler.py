@@ -80,21 +80,46 @@ def parse_submission(submission):
     """Parse bài viết + comment"""
     post_data = {
         'submission_id': submission.id,
+        'user_id':submission.author.id,
         'title': submission.title,
         'content': submission.selftext,
         'author': str(submission.author),
-        'score': submission.score,
+        'submission_url' : "https://www.reddit.com" + submission.permalink,
         'url': submission.url,
         'created_utc': submission.created_utc,
+        'score': submission.score,                  # like - dislike
+        'like':submission.ups,
+        'dislike':submission.downs,
+        'num_comments': submission.num_comments,    # tổng comment trực tiếp và lồng nhau
         'comments': []
     }
 
-    submission.comments.replace_more(limit=None)
-    for comment in submission.comments.list():
+    images = []
+    if hasattr(submission,"preview"):
+        try:
+            for img in submission.preview.get("image",[]):
+                images.append(img["source"]["url"])
+        except Exception:
+            pass
+
+    video = submission.media if submission.media else None
+
+    post_data["images"] = images
+    post_data["video"] = video
+
+    submission.comments.replace_more(limit=None)                # lấy comment ở mọi cấp độ
+    for comment in submission.comments.list():                  # flatten tất cả comment thành 1 list
         post_data['comments'].append({
+            'comment_id': comment.id,           # ID comment
+            'user_id' : comment.author.id,
+            'comment_url' :"https://www.reddit.com" + comment.permalink ,
             'body': comment.body,
             'author': str(comment.author),
-            'score': comment.score
+            'score': comment.score,                 # Điểm (up - down)
+            'like': comment.ups,                     # Số upvote
+            'dislike': comment.downs,                 # Số downvote (thường = 0)
+            'created_utc': comment.created_utc,     # Ngày đăng (timestamp UTC)
+            'num_replies': len(comment.replies)    # Số comment con trực tiếp
         })
 
     return post_data

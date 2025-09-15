@@ -1,4 +1,5 @@
-import datetime
+import hashlib
+from datetime import datetime
 import logging
 import re
 import time
@@ -132,24 +133,90 @@ async def handle_browser_error(page, action):
         raise
 
 
-def push_to_kafka(data, topic, batch_size=10):
-
+def push_to_kafka(data,batch_size=10):
     try:
-
         kafka = KafkaConnection()
         producer = kafka.get_producer()
 
-
+        list_comment = []
         for doc in data:
-            # Loại bỏ _id vì Kafka message không cần
-            doc_to_send = {k: v for k, v in doc.items() if k != "_id"}
+            doc_to_send = {
+                "source": "reddit",
+                "docType": "forum",
+                "type": "forum",
+                "userId": doc.get("user_id"),
+                "userName": doc.get("author"),
+                "sourceId": "reddit",
+                "sourceName": "reddit",
+                "collectDate": datetime.utcnow().isoformat() + "Z",  # thời gian crawl
+                "createDate": datetime.utcfromtimestamp(doc["created_utc"]).isoformat() + "Z",  # ngày đăng
+                "postLink": doc.get("submission_url"),
+                "domain": "reddit.com",
+                "pictures": doc.get("images", []),
+                "title": doc.get("title") or doc.get("content", ""),
+                "description": "",
+                "tags": "",
+                "content": doc.get("content"),
+                "logoLink": "",
+                "provinces": [],
+                "categories": [],
+                "link": doc.get("url"),
+                "numLikes": doc.get("like", 0),
+                "numDislikes": doc.get("dislike", 0),
+                "numComments": doc.get("num_comments", 0),
+                "numShares": 0,
+                "numViews": 0,
+                "reactions": {},
+                "docId": hashlib.md5(doc["submission_id"].encode()).hexdigest().upper(),
+                "postId": "",   # rỗng vì đây là bài gốc
+                "fromCrawler": "reddit_crawler"
+            }
 
-            # Gửi vào Kafka
-            producer.send(topic, value=doc_to_send)
-            logger.info(f" Sent post '{doc.get('title', '')}' to Kafka topic={topic}")
+            # send vào Kafka
+            producer.send("vnsocial_indexing_crawl_forum", value=doc_to_send)
 
-        producer.flush()  # Đảm bảo tất cả message đã được gửi
-        logger.info("Hoàn tất đẩy dữ liệu  sang Kafka")
+            for c in doc.get("comments",[]):
+                c["postId"]=hashlib.md5(doc["submission_id"].encode()).hexdigest().upper()
+                list_comment.append(c)
+
+        # flush phần còn lại
+        if list_comment:
+            for doc in list_comment:
+                doc_to_send = {
+                    "source": "reddit",
+                    "docType": "forum",
+                    "type": "forum_comment",
+                    "userId": doc.get("user_id"),
+                    "userName": doc.get("author"),
+                    "sourceId": "reddit",
+                    "sourceName": "reddit",
+                    "collectDate": datetime.utcnow().isoformat() + "Z",  # thời gian crawl
+                    "createDate": datetime.utcfromtimestamp(doc["created_utc"]).isoformat() + "Z",  # ngày đăng
+                    "postLink": doc.get("comment_url"),
+                    "domain": "reddit.com",
+                    "pictures": doc.get("images", []),
+                    "title": "",
+                    "description": "",
+                    "tags": "",
+                    "content": doc.get("body"),
+                    "logoLink": "",
+                    "provinces": [],
+                    "categories": [],
+                    "link": doc.get("url",""),
+                    "numLikes": doc.get("like", 0),
+                    "numDislikes": doc.get("dislike", 0),
+                    "numComments": doc.get("num_replies", 0),
+                    "numShares": 0,
+                    "numViews": 0,
+                    "reactions": {},
+                    "docId": "",
+                    "postId": doc.get("postId",""),
+                    "fromCrawler": "reddit_crawler"
+                }
+                producer.send("vnsocial_indexing_crawl_forum_comment", value=doc_to_send)
+            list_comment.clear()
+
+        producer.flush()
 
     except Exception as e:
-        logger.error(f"Lỗi khi đẩy  -> Kafka: {e}")
+        logger.error(f"Kafka push error: {e}")

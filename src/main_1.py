@@ -64,7 +64,7 @@ def fetch_by_accounts(mongo_conn, type_crawl, limit=10):
             for post in data:
                 post["filter"] = name_db
                 save_data(post, mongo_conn, name_db)
-            push_to_kafka(data, Config.TOPIC)
+            push_to_kafka(data)
 
         page += 1
 
@@ -97,7 +97,7 @@ def fetch_by_keywords(mongo_conn, type_crawl, limit=10):
             for post in data:
                 post["filter"] = name_db
                 save_data(post, mongo_conn, name_db)
-            push_to_kafka(data, Config.TOPIC)
+            push_to_kafka(data)
 
         page += 1
 
